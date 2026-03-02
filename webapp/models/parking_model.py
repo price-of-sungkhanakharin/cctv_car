@@ -31,13 +31,9 @@ class ParkingArea(me.Document):
     # รายละเอียดพื้นที่ อิงตาม <description> (เอาไว้แสดงผลบนเว็บ)
     description = me.StringField()
     
-    # รหัสกล้องที่จับภาพลานจอดนี้ (สำหรับไว้เชื่อมกับกล้อง)
+    # รหัสกล้องที่จับภาพลานจอดนี้ (สำหรับไว้เชื่อมกับกล้อง - วิ่งไปหา Camera model ดูชื่อหรือ stream_url ต่อได้)
     camera_id = me.StringField(required=True)
-    
-    # พิกัด GPS (ละติจูด, ลองจิจูด) สำหรับปักหมุดลานจอดนี้บนแผนที่
-    latitude = me.FloatField()
-    longitude = me.FloatField()
-    
+
     # ขนาดของภาพอ้างอิงตอนวาดกรอบ (<imageWidth> และ <imageHeight>)
     image_width = me.IntField(required=True)
     image_height = me.IntField(required=True)
