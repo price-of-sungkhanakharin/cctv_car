@@ -11,7 +11,11 @@ def main():
 
     server = Server(app.wsgi_app)
     print(pathlib.Path(__file__).parent)
-    server.watch("webapp")
+    
+    def ignore_node_modules(filepath):
+        return "node_modules" in filepath or "tailwind" in filepath
+
+    server.watch("webapp", ignore=ignore_node_modules)
     server.serve(
         debug=options.debug,
         host=options.host,

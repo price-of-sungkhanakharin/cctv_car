@@ -1,3 +1,11 @@
 @import "tailwindcss";
-@config "./tailwind.config.js";
+@source "../../templates/**/*.html";
 @plugin "daisyui";
+
+@theme {
+    --color-background-dark: #0a0a0a;
+    --color-surface-dark: #171717;
+    --color-feed-bg: #000000;
+
+    --font-body: "Space Grotesk", sans-serif;
+}

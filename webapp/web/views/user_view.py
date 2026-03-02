@@ -1,4 +1,6 @@
 from flask import Blueprint, render_template, redirect, url_for, request
+from flask_login import login_required, logout_user
+
 from ..forms.user_form import LoginForm, RegisterForm
 from ...services.user_service import UserService
 
@@ -43,4 +45,11 @@ def register():
             "/users/register.html", form=form, error_msg=register_result["error_msg"]
         )
 
+    return redirect(url_for("users.login"))
+
+
+@module.route("/logout")
+@login_required
+def logout():
+    logout_user()
     return redirect(url_for("users.login"))

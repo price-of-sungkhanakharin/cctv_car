@@ -56,7 +56,7 @@ def load_user(user_id):
 @login_manager.unauthorized_handler
 def unauthorized_callback():
     if request.method == "GET":
-        response = redirect(login_url("accounts.login", request.url))
+        response = redirect(login_url("users.login", request.url))
         return response
 
-    return redirect(url_for("accounts.login"))
+    return redirect(url_for("users.login"))

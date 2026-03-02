@@ -1,0 +1,43 @@
+<!-- Navbar Component (Monitoring Style) -->
+<header class="flex items-center justify-between border-b border-white/10 bg-[#171717] px-4 py-3 shrink-0">
+    <div class="flex items-center gap-3">
+        <div class="flex items-center justify-center rounded bg-primary/20 p-1.5">
+            <span class="material-symbols-outlined text-primary text-xl">videocam</span>
+        </div>
+        <a href="{{ url_for('index.index') }}" class="text-white text-base font-bold tracking-tight uppercase">
+            {{ config.APP_TITLE }}
+        </a>
+    </div>
+
+    <nav class="flex gap-1">
+        <a class="px-4 py-1.5 text-xs font-medium text-white bg-white/10 rounded transition-colors"
+            href="{{ url_for('index.index') }}">Dashboard</a>
+        <a class="px-4 py-1.5 text-xs font-medium text-slate-400 hover:text-white transition-colors"
+            href="#">Settings</a>
+    </nav>
+
+    <div class="flex items-center gap-3 text-xs text-slate-400">
+        <span class="flex items-center gap-1.5">
+            <span class="block h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse"></span>
+            System Online
+        </span>
+        <div class="h-4 w-[1px] bg-white/10"></div>
+
+        {% if current_user.is_authenticated %}
+        <div class="dropdown dropdown-end">
+            <div tabindex="0" role="button" class="btn btn-ghost btn-circle avatar placeholder min-h-0 h-8 w-8">
+                <div class="bg-primary/20 text-primary rounded-full w-full">
+                    <span class="text-[10px] font-bold">{{ current_user.username[:2] | upper }}</span>
+                </div>
+            </div>
+            <ul tabindex="0"
+                class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-[#171717] rounded-box w-52 border border-white/10 text-slate-200">
+                <li><a href="{{ url_for('users.logout') }}" class="text-red-400 hover:bg-white/5">Logout</a></li>
+            </ul>
+        </div>
+        {% else %}
+        <a href="{{ url_for('users.login') }}"
+            class="text-primary hover:text-primary/80 font-medium transition-colors">Login</a>
+        {% endif %}
+    </div>
+</header>
