@@ -69,12 +69,29 @@
             class="input input-bordered input-sm w-full bg-slate-900 border-slate-600 focus:border-emerald-500" />
         </div>
 
-        <div class="form-control w-full mb-6">
+        <div class="form-control w-full mb-4">
           <label class="label">
             <span class="label-text text-slate-300">Stream URL or IP Address (MJPEG/Direct)</span>
           </label>
           <input type="url" id="modal-cam-url" placeholder="http://192.168.1.100/video.mjpg"
             class="input input-bordered input-sm w-full bg-slate-900 border-slate-600 focus:border-emerald-500" />
+        </div>
+
+        <div class="flex gap-4 mb-6">
+          <div class="form-control flex-1">
+            <label class="label">
+              <span class="label-text text-slate-300">Latitude (ละติจูด)</span>
+            </label>
+            <input type="number" id="modal-cam-lat" placeholder="e.g. 7.0103" step="any"
+              class="input input-bordered input-sm w-full bg-slate-900 border-slate-600 focus:border-emerald-500" />
+          </div>
+          <div class="form-control flex-1">
+            <label class="label">
+              <span class="label-text text-slate-300">Longitude (ลองจิจูด)</span>
+            </label>
+            <input type="number" id="modal-cam-lng" placeholder="e.g. 100.4965" step="any"
+              class="input input-bordered input-sm w-full bg-slate-900 border-slate-600 focus:border-emerald-500" />
+          </div>
         </div>
       </div>
 
@@ -189,6 +206,8 @@
     toggleNewCameraInputs();
     document.getElementById("modal-cam-name").value = "";
     document.getElementById("modal-cam-url").value = "";
+    document.getElementById("modal-cam-lat").value = "";
+    document.getElementById("modal-cam-lng").value = "";
 
     const removeBtn = document.getElementById("modal-remove-btn-container");
     if (cameraId && cameraId !== "") {
@@ -213,6 +232,8 @@
     const selectedCamId = document.getElementById("modal-cam-select").value;
     const camName = document.getElementById("modal-cam-name").value;
     const camUrl = document.getElementById("modal-cam-url").value;
+    const camLat = document.getElementById("modal-cam-lat").value;
+    const camLng = document.getElementById("modal-cam-lng").value;
 
     const payload = { slot_id: parseInt(currentActiveSlot) };
 
@@ -225,6 +246,9 @@
       }
       payload.name = camName;
       payload.stream_url = camUrl;
+
+      if (camLat) payload.latitude = parseFloat(camLat);
+      if (camLng) payload.longitude = parseFloat(camLng);
     }
 
     try {

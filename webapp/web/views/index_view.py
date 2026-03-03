@@ -66,6 +66,9 @@ def assign_camera():
         # Creating a new camera
         name = data.get("name")
         stream_url = data.get("stream_url")
+        latitude = data.get("latitude")
+        longitude = data.get("longitude")
+        
         if not name or not stream_url:
             return jsonify({"error": "name and stream_url are required for new cameras"}), 400
             
@@ -74,6 +77,8 @@ def assign_camera():
             camera_id=new_cam_id,
             name=name,
             stream_url=stream_url,
+            latitude=latitude,
+            longitude=longitude,
             dashboard_slot=slot_id
         )
         cam.save()

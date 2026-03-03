@@ -95,50 +95,36 @@
     popupAnchor: [0, -12]
   });
 
-  // Parking lots data (precise locations around PSU campus)
-  const parkingLots = [
-    {
-      name: 'Engineering Building Lot (P1)',
-      location: 'Faculty of Engineering • Main Parking',
-      lat: 7.0110,
-      lng: 100.4960,
-      capacity: 45,
-      maxCapacity: 200,
-      status: 'open',
-      status_label: 'Open',
-      capacityPercent: 22
-    },
-    {
-      name: 'Science Building Lot (P2)',
-      lat: 7.0130,
-      lng: 100.4985,
-      capacity: 170,
-      maxCapacity: 200,
-      status: 'filling',
-      status_label: 'Filling Fast (85%)',
-      capacityPercent: 85
-    },
-    {
-      name: 'Dormitory Lot (P3)',
-      lat: 7.0080,
-      lng: 100.4930,
-      capacity: 40,
-      maxCapacity: 200,
-      status: 'available',
-      status_label: 'Available (20%)',
-      capacityPercent: 20
-    },
-    {
-      name: 'Sports Center Lot (P4)',
-      lat: 7.0095,
-      lng: 100.5010,
-      capacity: 200,
-      maxCapacity: 200,
+  // Real parking lots data from database
+  const db_parking_lots = {{ parking_lots | tojson | safe }};
+
+  // Process data to match the map's expected structure
+  const parkingLots = db_parking_lots.map(lot => ({
+    name: lot.name,
+    location: lot.ip_address,
+    lat: lot.lat,
+    lng: lot.lng,
+    capacity: lot.available_slots !== null ? lot.available_slots : 0,
+    maxCapacity: lot.total_slots !== null ? lot.total_slots : 0,
+    status: lot.status,
+    status_label: lot.status.charAt(0).toUpperCase() + lot.status.slice(1),
+    capacityPercent: lot.capacityPercent
+  }));
+
+  // Fallback if no real data exists (to keep the map from being empty during demo)
+  if (parkingLots.length === 0) {
+    parkingLots.push({
+      name: 'No Camera Detected',
+      location: 'Please add cameras with GPS in settings',
+      lat: PSU_LAT,
+      lng: PSU_LNG,
+      capacity: 0,
+      maxCapacity: 0,
       status: 'full',
-      status_label: 'Full',
+      status_label: 'Offline',
       capacityPercent: 100
-    }
-  ];
+    });
+  }
 
   // Create popup content
   function createPopupContent(lot) {
