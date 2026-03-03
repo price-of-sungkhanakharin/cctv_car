@@ -19,11 +19,14 @@ def index():
             assigned_cameras[cam.dashboard_slot] = cam
         else:
             unassigned_cameras.append(cam)
+    # Fetch the 20 most recent anomaly events
+    anomaly_logs = models.AnomalyEvent.objects().order_by("-timestamp").limit(20)
             
     return render_template(
         "/index/index.html", 
         assigned_cameras=assigned_cameras,
-        unassigned_cameras=unassigned_cameras
+        unassigned_cameras=unassigned_cameras,
+        anomaly_logs=anomaly_logs
     )
 
 

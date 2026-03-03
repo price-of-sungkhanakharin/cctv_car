@@ -221,6 +221,63 @@
             </div>
             {% endif %}
 
+            <!-- Recent Anomalies / Violations Section -->
+            {% if anomaly_events %}
+            <div class="p-6 pt-0">
+                <h3 class="text-xs font-bold text-red-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-[16px]">warning</span>
+                    Recent Violations
+                </h3>
+
+                <div class="flex flex-col gap-3">
+                    {% for event in anomaly_events %}
+                    <div
+                        class="bg-surface rounded-xl border border-red-500/20 overflow-hidden hover:border-red-500/40 transition-colors">
+                        {% if event.media_snapshot_url %}
+                        <div class="h-24 w-full bg-black relative">
+                            <img src="{{ event.media_snapshot_url }}" alt="Violation Snapshot"
+                                class="w-full h-full object-cover opacity-80" />
+                            <div class="absolute inset-0 bg-gradient-to-t from-black/90 to-transparent"></div>
+
+                            <div class="absolute bottom-2 left-2 right-2 flex justify-between items-end">
+                                <span
+                                    class="text-[10px] font-mono text-slate-300 font-medium bg-black/60 px-1.5 py-0.5 rounded border border-white/10 backdrop-blur-sm">
+                                    {{ event.timestamp.strftime('%H:%M:%S') }}
+                                </span>
+                                <span
+                                    class="text-[10px] font-bold text-red-400 px-1.5 py-0.5 rounded bg-red-500/20 border border-red-500/30 backdrop-blur-sm">
+                                    {{ '%0.1f' | format(event.confidence * 100) }}%
+                                </span>
+                            </div>
+                        </div>
+                        {% endif %}
+                        <div class="p-3">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-xs font-bold text-white capitalize">{{ event.event_type.replace('_', '
+                                    ') }}</span>
+                                {% if event.is_reviewed %}
+                                <span class="material-symbols-outlined text-[14px] text-emerald-400"
+                                    title="Reviewed">check_circle</span>
+                                {% else %}
+                                <span class="material-symbols-outlined text-[14px] text-orange-400"
+                                    title="Pending Review">pending_actions</span>
+                                {% endif %}
+                            </div>
+
+                            {% if event.media_video_url %}
+                            <a href="{{ event.media_video_url }}" target="_blank"
+                                class="w-full flex justify-center items-center gap-1.5 py-1.5 mt-2 rounded bg-white/5 hover:bg-white/10 text-slate-300 text-[10px] font-medium transition-colors border border-white/5">
+                                <span class="material-symbols-outlined text-[14px]">play_circle</span>
+                                View Video
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
         </div>
     </main>
 </div>

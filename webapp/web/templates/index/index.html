@@ -137,70 +137,26 @@
   <div class="logs-container">
     <h3 class="logs-title">Latest 20 Logs</h3>
     <div class="logs-scroll no-scrollbar mask-gradient-right">
-      <div class="logs-list">
-        <div class="log-item">
-          <span class="log-time">10:41:05</span>
-          <span class="log-camera">CAM-01</span>
-          <span class="log-message">Motion Detected</span>
-        </div>
-        <div class="log-divider"></div>
-
-        <div class="log-item">
-          <span class="log-time">10:40:55</span>
-          <span class="log-camera">CAM-03</span>
-          <span class="log-message">Vehicle Entry</span>
-        </div>
-        <div class="log-divider"></div>
-
-        <div class="log-item">
-          <span class="log-time">10:40:12</span>
-          <span class="log-camera">CAM-07</span>
-          <span class="log-message-error">Signal Lost</span>
-        </div>
-        <div class="log-divider"></div>
-
-        <div class="log-item">
-          <span class="log-time">10:39:45</span>
-          <span class="log-camera">CAM-05</span>
-          <span class="log-message">Person Identified</span>
-        </div>
-        <div class="log-divider"></div>
-
-        <div class="log-item">
-          <span class="log-time">10:38:20</span>
-          <span class="log-camera">CAM-12</span>
-          <span class="log-message">Door Ajar</span>
-        </div>
-        <div class="log-divider"></div>
-
-        <div class="log-item">
-          <span class="log-time">10:37:05</span>
-          <span class="log-camera">CAM-08</span>
-          <span class="log-message">IR Mode Active</span>
-        </div>
-        <div class="log-divider"></div>
-
-        <div class="log-item">
-          <span class="log-time">10:36:15</span>
-          <span class="log-camera">CAM-02</span>
-          <span class="log-message">Motion Detected</span>
-        </div>
-        <div class="log-divider"></div>
-
-        <div class="log-item">
-          <span class="log-time">10:35:50</span>
-          <span class="log-camera">CAM-16</span>
-          <span class="log-message">Access Granted</span>
-        </div>
-        <div class="log-divider"></div>
-
-        <div class="log-item">
-          <span class="log-time">10:34:10</span>
-          <span class="log-camera">CAM-01</span>
-          <span class="log-message">Shift Change</span>
-        </div>
+      {% for log in anomaly_logs %}
+      <div class="log-item group">
+        <span class="log-time">{{ log.timestamp.strftime('%H:%M:%S') }}</span>
+        <span class="log-camera">{{ log.camera_id }}</span>
+        <span class="log-message text-red-400 capitalize">{{ log.event_type.replace('_', ' ') }}</span>
+        {% if log.media_video_url %}
+        <a href="{{ url_for('camera.live_feed', camera_id=log.camera_id) }}" target="_blank"
+          class="ml-2 text-[10px] text-emerald-400 opacity-0 group-hover:opacity-100 transition-opacity">
+          <span class="material-symbols-outlined text-sm align-middle">visibility</span>
+        </a>
+        {% endif %}
       </div>
+      {% if not loop.last %}<div class="log-divider"></div>{% endif %}
+      {% else %}
+      <div class="flex items-center justify-center p-4 text-slate-500 text-xs">
+        No recent anomalies recorded
+      </div>
+      {% endfor %}
     </div>
+  </div>
   </div>
 </footer>
 </div>
