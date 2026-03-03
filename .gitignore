@@ -46,3 +46,6 @@ node_modules/
 
 # Cython debug symbols
 cython_debug/
+
+# Built Tailwind CSS file
+webapp/web/static/css/app.css

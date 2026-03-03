@@ -38,7 +38,7 @@ def create_app():
     return app
 
 
-def get_program_options(default_host="127.0.0.1", default_port="8080"):
+def get_program_options(default_host="0.0.0.0", default_port="8080"):
     """
     Takes a flask.Flask instance and runs it. Parses
     command-line flags to configure the app.
