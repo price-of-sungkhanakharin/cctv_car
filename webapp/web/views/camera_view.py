@@ -31,3 +31,29 @@ def live_feed(camera_id):
         capacity_percent=capacity_percent,
         anomaly_events=anomaly_events
     )
+
+@module.route("/camera/setting/<camera_id>")
+@login_required
+def camera_setting(camera_id):
+    """Display the camera's configuration interface embedded in an iframe"""
+    cam = models.Camera.objects(camera_id=camera_id).first()
+    
+    if not cam:
+        abort(404, description="Camera not found")
+        
+    # We use a mock URL if we just want to test iframe embedding without an actual IP.
+    # We will use the IP address if it looks like a valid URL or just mock it.
+    target_url = ""
+    if cam.ip_address:
+        if cam.ip_address.startswith("http"):
+            target_url = cam.ip_address
+        else:
+            target_url = f"http://{cam.ip_address}"
+    else:
+        target_url = "https://example.com"
+
+    return render_template(
+        "/camera/setting.html",
+        camera=cam,
+        target_url=target_url
+    )
