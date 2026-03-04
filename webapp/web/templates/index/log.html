@@ -1,0 +1,132 @@
+{% extends "base/base.html" %}
+
+{% block title %}Violation Logs - {{ config.APP_TITLE }}{% endblock %}
+
+{% block head %}
+<!-- Any specific head content for the log page can go here if needed -->
+{% endblock %}
+
+{% block body %}
+<!-- Main Content -->
+<main class="flex-1 p-6 flex flex-col gap-6 mx-auto w-full overflow-y-auto">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-slate-100">Improperly Parked Vehicles</h1>
+            <p class="text-slate-400 text-sm">Reviewing recorded incidents and violations</p>
+        </div>
+
+        <!-- Search Bar -->
+        <div class="w-full md:w-80">
+            <form method="GET" action="{{ url_for('index.log_view') }}" class="relative">
+                <input type="hidden" name="date" value="{{ selected_date }}">
+                <span
+                    class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xl">search</span>
+                <input name="q" value="{{ search_query }}"
+                    class="w-full bg-[#1e2329] border border-white/10 rounded-lg py-2.5 pl-10 pr-4 text-sm text-slate-100 focus:ring-2 focus:ring-primary focus:border-transparent placeholder:text-slate-500 transition-all"
+                    placeholder="Search by Location, Camera, Type..." type="text" />
+            </form>
+        </div>
+    </div>
+
+    <!-- Table Container -->
+    <div class="bg-[#1e2329] border border-white/10 rounded-xl overflow-hidden shadow-sm">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-black/30 text-slate-400 text-xs font-bold uppercase tracking-wider">
+                        <th class="px-6 py-4 border-b border-white/10">ID</th>
+                        <th class="px-6 py-4 border-b border-white/10">Location</th>
+                        <th class="px-6 py-4 border-b border-white/10">Timestamp</th>
+                        <th class="px-6 py-4 border-b border-white/10">Event Type</th>
+                        <th class="px-6 py-4 border-b border-white/10">Confidence</th>
+                        <th class="px-6 py-4 border-b border-white/10">Snapshot</th>
+                        <th class="px-6 py-4 border-b border-white/10">Video</th>
+                        <th class="px-6 py-4 border-b border-white/10">Seek (s)</th>
+                        <th class="px-6 py-4 border-b border-white/10 text-center">Reviewed</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-white/10">
+                    {% for event in events %}
+                    <tr class="hover:bg-white/5 transition-colors cursor-pointer"
+                        onclick="window.location.href='{{ url_for('index.anomaly_detail', event_id=event.id) }}'">
+                        <td class="px-6 py-4 text-sm text-slate-400 font-medium whitespace-nowrap">#{{
+                            (event.id|string)[-6:] }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex flex-col">
+                                <span class="text-sm font-semibold text-slate-100">{{ camera_names.get(event.camera_id,
+                                    'Unknown Location') }}</span>
+                                <span class="text-xs text-slate-500">{{ event.camera_id }}</span>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 text-sm text-slate-400 whitespace-nowrap">{{
+                            event.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span
+                                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-900/30 text-red-400 border border-red-500/20">
+                                {{ event.event_type }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs font-bold text-slate-100">{{ (event.confidence * 100)|int
+                                    }}%</span>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <div
+                                class="h-10 w-16 rounded overflow-hidden bg-black flex items-center justify-center border border-white/10">
+                                {% if event.media_snapshot_url %}
+                                <img class="h-full w-full object-cover" alt="Snapshot"
+                                    src="{{ event.media_snapshot_url }}" />
+                                {% else %}
+                                <span class="material-symbols-outlined text-slate-500 text-sm">no_photography</span>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td class="px-6 py-4">
+                            {% if event.media_video_url %}
+                            <button class="text-primary hover:text-blue-400 flex items-center gap-1 transition-colors"
+                                onclick="event.stopPropagation(); window.open('{{ event.media_video_url }}', '_blank');">
+                                <span class="material-symbols-outlined text-xl">play_circle</span>
+                            </button>
+                            {% else %}
+                            <span class="text-slate-500">-</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 text-sm text-slate-400">{{ event.media_seek_time_seconds }}s</td>
+                        <td class="px-6 py-4 text-center">
+                            <input {% if event.is_reviewed %}checked{% endif %}
+                                class="h-4 w-4 rounded border-white/20 bg-black/50 text-primary focus:ring-primary focus:ring-offset-0 focus:ring-offset-[#1e2329]"
+                                type="checkbox" onclick="event.stopPropagation();" />
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="9" class="px-6 py-12 text-center text-slate-400">
+                            No anomaly logs found for this date.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Date Navigation Controls -->
+    <div class="flex items-center justify-center gap-4 mt-8 py-4 self-center">
+        <a href="{{ url_for('index.log_view', date=prev_date, q=search_query) }}"
+            class="p-2 rounded-full text-slate-400 hover:text-white hover:bg-white/10 transition-all">
+            <span class="material-symbols-outlined text-2xl">chevron_left</span>
+        </a>
+        <div class="flex flex-col items-center">
+            <div class="px-6 py-2 rounded-full bg-white/5 border border-white/10">
+                <span class="text-sm font-semibold tracking-wide text-slate-100">{{ selected_date_display }}</span>
+            </div>
+        </div>
+        <a href="{{ url_for('index.log_view', date=next_date, q=search_query) }}"
+            class="p-2 rounded-full text-slate-400 hover:text-white hover:bg-white/10 transition-all">
+            <span class="material-symbols-outlined text-2xl">chevron_right</span>
+        </a>
+    </div>
+</main>
+{% endblock %}

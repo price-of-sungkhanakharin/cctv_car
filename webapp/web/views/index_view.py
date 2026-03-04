@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, redirect, url_for, request, jsonif
 from flask_login import login_required, current_user
 import uuid
 from .. import models
+import mongoengine as me
 
 module = Blueprint("index", __name__)
 
@@ -43,6 +44,73 @@ def anomaly_detail(event_id):
         "/index/anomaly_detail.html",
         event=event,
         camera=camera
+    )
+
+@module.route("/log")
+@login_required
+def log_view():
+    import datetime
+    
+    # Get parameters
+    date_str = request.args.get("date", "")
+    search_query = request.args.get("q", "").strip()
+    
+    # Try parsing date, default to today
+    try:
+        if date_str:
+            selected_date = datetime.datetime.strptime(date_str, "%Y-%m-%d").date()
+        else:
+            selected_date = datetime.date.today()
+    except ValueError:
+        selected_date = datetime.date.today()
+        
+    start_of_day = datetime.datetime.combine(selected_date, datetime.time.min)
+    end_of_day = datetime.datetime.combine(selected_date, datetime.time.max)
+    
+    # Base query for the selected day
+    query = models.AnomalyEvent.objects(
+        timestamp__gte=start_of_day,
+        timestamp__lte=end_of_day
+    )
+    
+    # Fetch all parking areas to map camera_id to location name
+    parking_areas = models.ParkingArea.objects()
+    camera_names = {p.camera_id: p.name for p in parking_areas}
+    
+    # Apply search filter if present
+    if search_query:
+        # Check if the search matches a location name
+        matching_cameras = [
+            cam_id for cam_id, name in camera_names.items()
+            if search_query.lower() in name.lower()
+        ]
+        
+        # Search camera_id, event_type, or matched location names
+        query = query.filter(
+            me.Q(camera_id__icontains=search_query) | 
+            me.Q(event_type__icontains=search_query) |
+            me.Q(camera_id__in=matching_cameras)
+        )
+        
+    # Order by newest first
+    events = query.order_by("-timestamp")
+    
+    # Calculate previous and next dates for navigation
+    prev_date = (selected_date - datetime.timedelta(days=1)).strftime("%Y-%m-%d")
+    next_date = (selected_date + datetime.timedelta(days=1)).strftime("%Y-%m-%d")
+    
+    selected_date_str = selected_date.strftime("%Y-%m-%d")
+    selected_date_display = selected_date.strftime("%B %d, %Y")
+    
+    return render_template(
+        "/index/log.html",
+        events=events,
+        selected_date=selected_date_str,
+        selected_date_display=selected_date_display,
+        prev_date=prev_date,
+        next_date=next_date,
+        search_query=search_query,
+        camera_names=camera_names
     )
 
 

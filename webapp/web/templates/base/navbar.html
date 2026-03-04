@@ -14,8 +14,8 @@
             href="{{ url_for('index.index') }}">Dashboard</a>
         <a class="px-4 py-1.5 text-xs font-medium {% if request.endpoint == 'map.map_view' %}text-white bg-white/10 rounded{% else %}text-slate-400 hover:text-white{% endif %} transition-colors"
             href="{{ url_for('map.map_view') }}">Map</a>
-        <a class="px-4 py-1.5 text-xs font-medium {% if request.endpoint == 'settings' %}text-white bg-white/10 rounded{% else %}text-slate-400 hover:text-white{% endif %} transition-colors"
-            href="#">Log</a>
+        <a class="px-4 py-1.5 text-xs font-medium {% if request.endpoint == 'index.log_view' %}text-white bg-white/10 rounded{% else %}text-slate-400 hover:text-white{% endif %} transition-colors"
+            href="{{ url_for('index.log_view') }}">Log</a>
     </nav>
 
     <div class="flex items-center gap-3 text-xs text-slate-400">
