@@ -94,6 +94,21 @@ def anomaly_detail(event_id):
         camera=camera
     )
 
+@module.route("/api/anomaly/<event_id>/toggle_review", methods=["POST"])
+@login_required
+def toggle_anomaly_review(event_id):
+    event = models.AnomalyEvent.objects(id=event_id).first()
+    if not event:
+        return "Anomaly event not found", 404
+        
+    event.is_reviewed = not event.is_reviewed
+    event.save()
+    
+    checked_attr = "checked" if event.is_reviewed else ""
+    post_url = url_for('index.toggle_anomaly_review', event_id=event.id)
+    
+    return f'<input {checked_attr} class="h-4 w-4 rounded border-white/20 bg-black/50 text-primary focus:ring-primary focus:ring-offset-0 focus:ring-offset-[#1e2329]" type="checkbox" onclick="event.stopPropagation();" hx-post="{post_url}" hx-swap="outerHTML" />'
+
 @module.route("/log")
 @login_required
 def log_view():

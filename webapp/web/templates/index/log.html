@@ -28,8 +28,25 @@
         </div>
     </div>
 
+    <!-- Date Navigation Controls -->
+    <div class="flex items-center justify-center gap-4 py-4 self-center w-full">
+        <a href="{{ url_for('index.log_view', date=prev_date, q=search_query) }}"
+            class="p-2 rounded-full text-slate-400 hover:text-white hover:bg-white/10 transition-all">
+            <span class="material-symbols-outlined text-2xl">chevron_left</span>
+        </a>
+        <div class="flex flex-col items-center">
+            <div class="px-6 py-2 rounded-full bg-white/5 border border-white/10">
+                <span class="text-sm font-semibold tracking-wide text-slate-100">{{ selected_date_display }}</span>
+            </div>
+        </div>
+        <a href="{{ url_for('index.log_view', date=next_date, q=search_query) }}"
+            class="p-2 rounded-full text-slate-400 hover:text-white hover:bg-white/10 transition-all">
+            <span class="material-symbols-outlined text-2xl">chevron_right</span>
+        </a>
+    </div>
+
     <!-- Table Container -->
-    <div class="bg-[#1e2329] border border-white/10 rounded-xl overflow-hidden shadow-sm">
+    <div class="bg-[#1e2329] border border-white/10 rounded-xl shadow-sm">
         <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse">
                 <thead>
@@ -97,7 +114,9 @@
                         <td class="px-6 py-4 text-center">
                             <input {% if event.is_reviewed %}checked{% endif %}
                                 class="h-4 w-4 rounded border-white/20 bg-black/50 text-primary focus:ring-primary focus:ring-offset-0 focus:ring-offset-[#1e2329]"
-                                type="checkbox" onclick="event.stopPropagation();" />
+                                type="checkbox" onclick="event.stopPropagation();"
+                                hx-post="{{ url_for('index.toggle_anomaly_review', event_id=event.id) }}"
+                                hx-swap="outerHTML" />
                         </td>
                     </tr>
                     {% else %}
@@ -112,21 +131,5 @@
         </div>
     </div>
 
-    <!-- Date Navigation Controls -->
-    <div class="flex items-center justify-center gap-4 mt-8 py-4 self-center">
-        <a href="{{ url_for('index.log_view', date=prev_date, q=search_query) }}"
-            class="p-2 rounded-full text-slate-400 hover:text-white hover:bg-white/10 transition-all">
-            <span class="material-symbols-outlined text-2xl">chevron_left</span>
-        </a>
-        <div class="flex flex-col items-center">
-            <div class="px-6 py-2 rounded-full bg-white/5 border border-white/10">
-                <span class="text-sm font-semibold tracking-wide text-slate-100">{{ selected_date_display }}</span>
-            </div>
-        </div>
-        <a href="{{ url_for('index.log_view', date=next_date, q=search_query) }}"
-            class="p-2 rounded-full text-slate-400 hover:text-white hover:bg-white/10 transition-all">
-            <span class="material-symbols-outlined text-2xl">chevron_right</span>
-        </a>
-    </div>
 </main>
 {% endblock %}
