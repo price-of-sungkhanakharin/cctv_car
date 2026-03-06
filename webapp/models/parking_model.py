@@ -17,14 +17,18 @@ class ParkingArea(me.Document):
     camera_id = me.StringField(required=True)
 
     # --- ข้อมูลสรุปสถานะช่องจอด (อัปเดตจาก ML/กล้อง) ---
-    # จำนวนที่จอดทั้งหมดกี่ช่อง
+    # จำนวนที่จอดทั้งหมดรวมกันกี่ช่อง
     total_slots = me.IntField(default=0, min_value=0)
     
-    # จำนวนลานจอดที่ยังว่างอยู่
-    available_slots = me.IntField(default=0, min_value=0)
-    
-    # จำนวนลานจอดที่มีรถจอดอยู่แล้ว
-    occupied_slots = me.IntField(default=0, min_value=0)
+    # 🚗 จำนวนช่องจอดรถยนต์
+    total_car_slots = me.IntField(default=0, min_value=0)
+    available_car_slots = me.IntField(default=0, min_value=0)
+    occupied_car_slots = me.IntField(default=0, min_value=0)
+
+    # 🏍️ จำนวนช่องจอดมอเตอร์ไซค์
+    total_motorcycle_slots = me.IntField(default=0, min_value=0)
+    available_motorcycle_slots = me.IntField(default=0, min_value=0)
+    occupied_motorcycle_slots = me.IntField(default=0, min_value=0)
     
     # จำนวนรถที่ตีความว่า "จอดผิดกฎ" หรือจอดซ้อนคัน
     violation_slots = me.IntField(default=0, min_value=0)

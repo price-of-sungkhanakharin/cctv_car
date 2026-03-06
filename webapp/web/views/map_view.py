@@ -34,8 +34,14 @@ def map_view():
             "base_url": base_url,
             # Use DB data as initial values — JS will update these later
             "total_slots": pa.total_slots if pa else None,
-            "available_slots": pa.available_slots if pa else None,
-            "capacityPercent": int((pa.occupied_slots / pa.total_slots * 100)) if pa and pa.total_slots > 0 else 0
+            "total_car_slots": pa.total_car_slots if pa else None,
+            "available_car_slots": pa.available_car_slots if pa else None,
+            "occupied_car_slots": pa.occupied_car_slots if pa else None,
+            "total_motorcycle_slots": pa.total_motorcycle_slots if pa else None,
+            "available_motorcycle_slots": pa.available_motorcycle_slots if pa else None,
+            "occupied_motorcycle_slots": pa.occupied_motorcycle_slots if pa else None,
+            "violation_slots": pa.violation_slots if pa else None,
+            "capacityPercent": int(((pa.occupied_car_slots + pa.occupied_motorcycle_slots) / pa.total_slots * 100)) if pa and pa.total_slots > 0 else 0
         })
 
     return render_template("/map/map.html", parking_lots=markers)
@@ -58,13 +64,19 @@ def sync_camera_api(camera_id):
     # Return latest DB state after sync
     pa = models.ParkingArea.objects(camera_id=camera_id).first()
     if pa:
-        capacity_pct = int((pa.occupied_slots / pa.total_slots * 100)) if pa.total_slots > 0 else 0
+        total_occ = pa.occupied_car_slots + pa.occupied_motorcycle_slots
+        capacity_pct = int((total_occ / pa.total_slots * 100)) if pa.total_slots > 0 else 0
         return jsonify({
             "camera_id": camera_id,
             "online": True,
             "total_slots": pa.total_slots,
-            "available_slots": pa.available_slots,
-            "occupied_slots": pa.occupied_slots,
+            "total_car_slots": pa.total_car_slots,
+            "available_car_slots": pa.available_car_slots,
+            "occupied_car_slots": pa.occupied_car_slots,
+            "total_motorcycle_slots": pa.total_motorcycle_slots,
+            "available_motorcycle_slots": pa.available_motorcycle_slots,
+            "occupied_motorcycle_slots": pa.occupied_motorcycle_slots,
+            "violation_slots": pa.violation_slots,
             "capacityPercent": capacity_pct,
         })
     else:
@@ -72,7 +84,12 @@ def sync_camera_api(camera_id):
             "camera_id": camera_id,
             "online": True,
             "total_slots": None,
-            "available_slots": None,
-            "occupied_slots": None,
+            "total_car_slots": None,
+            "available_car_slots": None,
+            "occupied_car_slots": None,
+            "total_motorcycle_slots": None,
+            "available_motorcycle_slots": None,
+            "occupied_motorcycle_slots": None,
+            "violation_slots": None,
             "capacityPercent": 0,
         })

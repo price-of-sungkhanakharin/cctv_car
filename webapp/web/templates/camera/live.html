@@ -179,25 +179,43 @@
 
                     <div class="h-px w-full bg-white/5"></div>
 
-                    <!-- Available Spots -->
-                    <div class="flex items-center justify-between mb-2">
-                        <span class="text-sm font-medium text-slate-300">Available Spots</span>
+                    <!-- Car Spots -->
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="text-sm font-medium text-slate-300 flex items-center gap-2"><span
+                                class="material-symbols-outlined text-[16px] text-[#3b82f6]">directions_car</span>
+                            Cars</span>
                         <div class="flex items-baseline gap-1">
-                            <span class="text-xl font-bold text-emerald-400">{{ parking_area.available_slots }}</span>
-                            <span class="text-xs text-slate-500">/ {{ parking_area.total_slots }}</span>
+                            <span class="text-xl font-bold text-emerald-400">{{ parking_area.available_car_slots
+                                }}</span>
+                            <span class="text-xs text-slate-500">/ {{ parking_area.total_car_slots }}</span>
                         </div>
                     </div>
 
-                    <!-- Occupied Spots -->
-                    <div class="flex items-center justify-between">
-                        <span class="text-sm font-medium text-slate-300">Occupied</span>
-                        <span class="text-lg font-bold text-orange-400">{{ parking_area.occupied_slots }}</span>
+                    <!-- Motorcycle Spots -->
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-sm font-medium text-slate-300 flex items-center gap-2"><span
+                                class="material-symbols-outlined text-[16px] text-[#10b981]">two_wheeler</span>
+                            Motorcycles</span>
+                        <div class="flex items-baseline gap-1">
+                            <span class="text-xl font-bold text-emerald-400">{{ parking_area.available_motorcycle_slots
+                                }}</span>
+                            <span class="text-xs text-slate-500">/ {{ parking_area.total_motorcycle_slots }}</span>
+                        </div>
+                    </div>
+
+                    <!-- Occupied Summary -->
+                    <div class="flex items-center justify-between mt-2 pt-2 border-t border-white/5">
+                        <span class="text-sm font-medium text-slate-300">Total Occupied</span>
+                        <span class="text-lg font-bold text-orange-400">{{ parking_area.occupied_car_slots +
+                            parking_area.occupied_motorcycle_slots }}</span>
                     </div>
 
                     <!-- Violation -->
                     {% if parking_area.violation_slots > 0 %}
                     <div class="flex items-center justify-between">
-                        <span class="text-sm font-medium text-slate-300">Violations</span>
+                        <span class="text-sm font-medium text-slate-300 flex items-center gap-2">
+                            <span class="material-symbols-outlined text-[16px] text-red-500">warning</span> Violations
+                        </span>
                         <span class="text-lg font-bold text-red-400">{{ parking_area.violation_slots }}</span>
                     </div>
                     {% endif %}

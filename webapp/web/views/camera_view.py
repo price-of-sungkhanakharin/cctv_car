@@ -25,7 +25,8 @@ def live_feed(camera_id):
     
     capacity_percent = 0
     if parking_area and parking_area.total_slots > 0:
-        capacity_percent = int((parking_area.occupied_slots / parking_area.total_slots) * 100)
+        total_occ = parking_area.occupied_car_slots + parking_area.occupied_motorcycle_slots
+        capacity_percent = int((total_occ / parking_area.total_slots) * 100)
         
     # Fetch recent anomalies related to this camera
     raw_events = models.AnomalyEvent.objects(camera_id=camera_id).order_by('-timestamp').limit(10)

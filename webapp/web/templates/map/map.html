@@ -128,12 +128,23 @@
   }
 
   function createPopupContent(lot, isOnline, fresh) {
-    const avail = fresh?.available_slots ?? lot.available_slots;
-    const total = fresh?.total_slots ?? lot.total_slots;
-    const pct = fresh?.capacityPercent ?? lot.capacityPercent;
+    // 🚗 Cars
+    const carAvail = fresh?.available_car_slots ?? lot.available_car_slots ?? 0;
+    const carTotal = fresh?.total_car_slots ?? lot.total_car_slots ?? 0;
+    const carPct = carTotal > 0 ? Math.round(((carTotal - carAvail) / carTotal) * 100) : 0;
+
+    // 🏍️ Motorcycles
+    const motoAvail = fresh?.available_motorcycle_slots ?? lot.available_motorcycle_slots ?? 0;
+    const motoTotal = fresh?.total_motorcycle_slots ?? lot.total_motorcycle_slots ?? 0;
+    const motoPct = motoTotal > 0 ? Math.round(((motoTotal - motoAvail) / motoTotal) * 100) : 0;
+
+    // 🚨 Violations
+    const violations = fresh?.violation_slots ?? lot.violation_slots ?? 0;
+
+    // Summary
+    const pct = fresh?.capacityPercent ?? lot.capacityPercent ?? 0;
     const statusLabel = !isOnline ? 'Offline' : pct >= 85 ? 'Full' : pct >= 50 ? 'Filling' : 'Open';
     const statusColor = !isOnline ? '#ef4444' : pct >= 85 ? '#ef4444' : pct >= 50 ? '#fb923c' : '#22c55e';
-    const barColor = !isOnline ? '#ef4444' : pct >= 85 ? '#ef4444' : pct >= 50 ? '#fb923c' : '#22c55e';
 
     return `
       <div style="width:280px;">
@@ -148,14 +159,38 @@
         </div>
         <div style="padding:16px;">
           ${isOnline ? `
-          <div style="display:flex;justify-content:space-between;font-size:14px;margin-bottom:12px;">
-            <span style="color:#a1a1aa">Capacity</span>
-            <span style="color:white;font-family:monospace">${avail ?? '?'}/${total ?? '?'}</span>
+          <!-- Car Stats -->
+          <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;">
+            <span style="color:#a1a1aa; display:flex; align-items:center; gap:4px;">
+              <span class="material-symbols-outlined" style="font-size:14px; color:#3b82f6;">directions_car</span> Cars
+            </span>
+            <span style="color:white;font-family:monospace">${carAvail}/${carTotal}</span>
           </div>
-          <div style="background:rgba(113,113,122,.3);border-radius:999px;overflow:hidden;height:6px;margin-bottom:16px;">
-            <div style="height:100%;width:${pct}%;background:${barColor};transition:width .5s"></div>
-          </div>` : `
+          <div style="background:rgba(113,113,122,.3);border-radius:999px;overflow:hidden;height:4px;margin-bottom:12px;">
+            <div style="height:100%;width:${carPct}%;background:#3b82f6;transition:width .5s"></div>
+          </div>
+          
+          <!-- Motorcycle Stats -->
+          <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;">
+            <span style="color:#a1a1aa; display:flex; align-items:center; gap:4px;">
+              <span class="material-symbols-outlined" style="font-size:14px; color:#10b981;">two_wheeler</span> Motorcycles
+            </span>
+            <span style="color:white;font-family:monospace">${motoAvail}/${motoTotal}</span>
+          </div>
+          <div style="background:rgba(113,113,122,.3);border-radius:999px;overflow:hidden;height:4px;margin-bottom:12px;">
+            <div style="height:100%;width:${motoPct}%;background:#10b981;transition:width .5s"></div>
+          </div>
+          
+          <!-- Violations -->
+          <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:16px; padding-top:8px; border-top:1px dashed rgba(113,113,122,.3);">
+            <span style="color:#ef4444; display:flex; align-items:center; gap:4px; font-weight:bold;">
+              <span class="material-symbols-outlined" style="font-size:14px;">warning</span> Violations
+            </span>
+            <span style="color:#ef4444;font-family:monospace; font-weight:bold;">${violations}</span>
+          </div>
+          ` : `
           <p style="color:#ef4444;font-size:13px;margin-bottom:16px;text-align:center">⚠️ กล้องออฟไลน์หรือเชื่อมต่อไม่ได้</p>`}
+          
           <a href="/camera/${lot.camera_id}" target="_blank"
             style="width:100%;background:#3b82f6;color:white;padding:12px;border:none;border-radius:8px;cursor:pointer;font-weight:bold;font-size:12px;display:flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;"
             onmouseover="this.style.background='#2563eb'" onmouseout="this.style.background='#3b82f6'">
@@ -174,7 +209,8 @@
     const marker = L.marker([lot.lat, lot.lng], { icon: iconFactory('loading') }).addTo(map);
     marker.bindPopup(createPopupContent(lot, true, null), { maxWidth: 300 });
 
-    const tooltip = marker.bindTooltip(capacityLabel(lot.available_slots, lot.total_slots), {
+    const tooltip_total_available = (lot.available_car_slots || 0) + (lot.available_motorcycle_slots || 0);
+    const tooltip = marker.bindTooltip(capacityLabel(tooltip_total_available, lot.total_slots), {
       permanent: true, direction: 'top',
       className: 'parking-availability-label',
       offset: isLarge ? [0, -32] : [0, -22]
@@ -243,19 +279,33 @@
       if (!res.ok) throw new Error(`status ${res.status}`);
       const raw = await res.json();
 
-      // ข้อมูลกล้องอาจเป็น array หรือ object เดี่ยว
       const p = Array.isArray(raw) ? raw[0] : raw;
-      const total = p?.total_slots ?? lot.total_slots ?? 0;
-      const avail = p?.available_slots ?? lot.available_slots ?? 0;
-      const occupy = p?.occupied_slots ?? 0;
-      const pct = total > 0 ? Math.round(occupy / total * 100) : 0;
 
-      const freshData = { total_slots: total, available_slots: avail, capacityPercent: pct };
+      const t_car = p?.total_car_slots ?? lot.total_car_slots ?? 0;
+      const a_car = p?.available_car_slots ?? lot.available_car_slots ?? 0;
+      const t_moto = p?.total_motorcycle_slots ?? lot.total_motorcycle_slots ?? 0;
+      const a_moto = p?.available_motorcycle_slots ?? lot.available_motorcycle_slots ?? 0;
+      const violations = p?.violation_slots ?? lot.violation_slots ?? 0;
+
+      const total = p?.total_slots ?? lot.total_slots ?? 0;
+      const c_car = p?.occupied_car_slots ?? lot.occupied_car_slots ?? 0;
+      const c_moto = p?.occupied_motorcycle_slots ?? lot.occupied_motorcycle_slots ?? 0;
+      const pct = total > 0 ? Math.round((c_car + c_moto) / total * 100) : 0;
+
+      const freshData = {
+        total_slots: total, capacityPercent: pct,
+        total_car_slots: t_car, available_car_slots: a_car,
+        total_motorcycle_slots: t_moto, available_motorcycle_slots: a_moto,
+        violation_slots: violations
+      };
 
       // อัปเดต marker เป็น online (สีน้ำเงิน)
       marker.setIcon(iconFactory('online'));
       marker.setPopupContent(createPopupContent(lot, true, freshData));
-      marker.setTooltipContent(avail.toString());
+
+      // Compute total available for tooltip
+      const total_available = a_car + a_moto;
+      marker.setTooltipContent(total_available.toString());
 
       // แจ้ง server ให้อัปเดต MongoDB ด้วย (fire-and-forget ไม่ต้องรอ)
       fetch(`/api/map/sync_camera/${lot.camera_id}`).catch(() => { });

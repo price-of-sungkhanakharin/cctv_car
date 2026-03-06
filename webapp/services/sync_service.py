@@ -30,8 +30,15 @@ def sync_parking_area_for_camera(cam):
                 ParkingArea.objects(camera_id=cam.camera_id).update_one(
                     set__name=cam.name or cam.camera_id,
                     set__total_slots=p.get('total_slots', 0),
-                    set__available_slots=p.get('available_slots', 0),
-                    set__occupied_slots=p.get('occupied_slots', 0),
+                    
+                    set__total_car_slots=p.get('total_car_slots', 0),
+                    set__available_car_slots=p.get('available_car_slots', 0),
+                    set__occupied_car_slots=p.get('occupied_car_slots', 0),
+                    
+                    set__total_motorcycle_slots=p.get('total_motorcycle_slots', 0),
+                    set__available_motorcycle_slots=p.get('available_motorcycle_slots', 0),
+                    set__occupied_motorcycle_slots=p.get('occupied_motorcycle_slots', 0),
+                    
                     set__violation_slots=p.get('violation_slots', 0),
                     set__description=p.get('description', ''),
                     set__updated_date=datetime.datetime.now(),
