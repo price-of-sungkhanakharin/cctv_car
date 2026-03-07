@@ -31,8 +31,9 @@
 <div
   class="flex-1 w-full relative flex flex-col overflow-hidden bg-[#121214] rounded-xl border border-zinc-800/50 shadow-2xl">
   <!-- Search Box -->
-  <div class="absolute top-6 left-16 z-[1000] w-full max-w-sm pointer-events-none">
-    <div class="search-box rounded-xl shadow-lg pointer-events-auto p-2">
+  <div
+    class="absolute top-4 sm:top-6 left-4 right-4 sm:right-auto sm:left-16 z-[1000] sm:w-full sm:max-w-sm pointer-events-none">
+    <div class="search-box rounded-xl shadow-lg pointer-events-auto p-2 bg-[#171717] border border-white/10">
       <div class="flex items-center px-2">
         <span class="material-symbols-outlined text-slate-400">search</span>
         <input class="w-full bg-transparent border-none focus:ring-0 text-white placeholder-slate-500 h-10 text-sm"
@@ -41,8 +42,8 @@
     </div>
   </div>
 
-  <!-- Top Right Info Legend -->
-  <div class="absolute top-6 right-6 z-[1000] pointer-events-none">
+  <!-- Top Right Info Legend (Pushed down on mobile to avoid search bar) -->
+  <div class="absolute top-20 sm:top-6 right-4 sm:right-6 z-[1000] pointer-events-none">
     <div
       class="bg-[#171717] rounded-lg shadow-lg p-3 pointer-events-auto border border-white/10 flex flex-col gap-1 text-xs">
       <div class="font-bold text-slate-300 border-b border-white/10 pb-1 mb-1">Available Slots</div>
@@ -59,7 +60,7 @@
   <div id="map" class="flex-1 w-full h-full relative rounded-lg"></div>
 
   <!-- Map Controls -->
-  <div class="absolute bottom-8 right-8 z-[1000] flex flex-col gap-3 pointer-events-none">
+  <div class="absolute bottom-6 sm:bottom-8 right-4 sm:right-8 z-[1000] flex flex-col gap-3 pointer-events-none">
     <div
       class="flex flex-col rounded-lg shadow-xl overflow-hidden border border-slate-200 dark:border-zinc-700 pointer-events-auto">
       <button class="size-10 flex items-center justify-center map-control-button border-b" onclick="map.zoomIn()">

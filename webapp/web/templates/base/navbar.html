@@ -4,12 +4,13 @@
         <div class="flex items-center justify-center rounded bg-primary/20 p-1.5">
             <span class="material-symbols-outlined text-primary text-xl">videocam</span>
         </div>
-        <a href="{{ url_for('index.index') }}" class="text-white text-base font-bold tracking-tight uppercase">
+        <a href="{{ url_for('index.index') }}"
+            class="text-white text-sm sm:text-base font-bold tracking-tight uppercase truncate max-w-[150px] sm:max-w-none">
             {{ config.APP_TITLE }}
         </a>
     </div>
 
-    <nav class="flex gap-1">
+    <nav class="flex gap-1 sm:gap-2 overflow-x-auto hide-scrollbar">
         {% if current_user.is_authenticated %}
         <a class="px-4 py-1.5 text-xs font-medium {% if request.endpoint == 'index.index' %}text-white bg-white/10 rounded{% else %}text-slate-400 hover:text-white{% endif %} transition-colors"
             href="{{ url_for('index.index') }}">Dashboard</a>
@@ -22,12 +23,12 @@
         {% endif %}
     </nav>
 
-    <div class="flex items-center gap-3 text-xs text-slate-400">
-        <span class="flex items-center gap-1.5">
+    <div class="flex items-center gap-2 sm:gap-3 text-xs text-slate-400">
+        <span class="hidden md:flex items-center gap-1.5">
             <span class="block h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse"></span>
             System Online
         </span>
-        <div class="h-4 w-[1px] bg-white/10"></div>
+        <div class="hidden md:block h-4 w-[1px] bg-white/10"></div>
 
         {% if current_user.is_authenticated %}
         <div class="dropdown dropdown-end">
