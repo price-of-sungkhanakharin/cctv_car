@@ -32,6 +32,7 @@ def map_view():
             "lng": cam.longitude,
             "status": cam.status,
             "base_url": base_url,
+            "stream_url": cam.stream_url,
             # Use DB data as initial values — JS will update these later
             "total_slots": pa.total_slots if pa else None,
             "total_car_slots": pa.total_car_slots if pa else None,
@@ -59,7 +60,24 @@ def sync_camera_api(camera_id):
         return jsonify({"error": "Camera not found"}), 404
 
     from webapp.services.sync_service import sync_parking_area_for_camera
-    sync_parking_area_for_camera(cam)
+    is_data_online = sync_parking_area_for_camera(cam)
+
+    # Bypass browser SSL restrictions by checking the stream directly in Python
+    stream_online = False
+    if cam.stream_url:
+        import requests
+        import urllib3
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+        try:
+            # We ONLY want to ping it, grab headers, and close immediately to save bandwidth
+            res = requests.get(cam.stream_url, stream=True, verify=False, timeout=2.0)
+            if res.status_code == 200:
+                stream_online = True
+            res.close()
+        except Exception:
+            pass
+            
+    is_online = is_data_online or stream_online
 
     # Return latest DB state after sync
     pa = models.ParkingArea.objects(camera_id=camera_id).first()
@@ -68,7 +86,7 @@ def sync_camera_api(camera_id):
         capacity_pct = int((total_occ / pa.total_slots * 100)) if pa.total_slots > 0 else 0
         return jsonify({
             "camera_id": camera_id,
-            "online": True,
+            "online": is_online,
             "total_slots": pa.total_slots,
             "total_car_slots": pa.total_car_slots,
             "available_car_slots": pa.available_car_slots,
@@ -82,7 +100,7 @@ def sync_camera_api(camera_id):
     else:
         return jsonify({
             "camera_id": camera_id,
-            "online": True,
+            "online": False,
             "total_slots": None,
             "total_car_slots": None,
             "available_car_slots": None,

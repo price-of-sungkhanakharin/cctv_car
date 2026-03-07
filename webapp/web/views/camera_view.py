@@ -17,8 +17,11 @@ def live_feed(camera_id):
         abort(404, description="Camera not found")
         
     # Trigger on-demand sync for this specific camera
-    sync_parking_area_for_camera(cam)
-    sync_anomaly_events_for_camera(cam)
+    try:
+        sync_parking_area_for_camera(cam)
+        sync_anomaly_events_for_camera(cam)
+    except Exception as e:
+        print(f"Warning: Failed to sync camera {camera_id}: {e}")
         
     # Attempt to fetch associated parking area for stats
     parking_area = models.ParkingArea.objects(camera_id=camera_id).first()
@@ -81,11 +84,12 @@ def live_feed(camera_id):
 @module.route("/camera/setting/<camera_id>")
 @login_required
 def camera_setting(camera_id):
-    """Display the camera's configuration interface embedded in an iframe"""
+    """Display the camera's configuration interface and management options."""
     cam = models.Camera.objects(camera_id=camera_id).first()
     
     if not cam:
-        abort(404, description="Camera not found")
+        flash("Camera not found.", "error")
+        return redirect(url_for("camera.manage"))
         
     # We use stream_url to find the device's web interface (e.g. removing /video)
     target_url = ""
@@ -105,8 +109,147 @@ def camera_setting(camera_id):
     else:
         target_url = "https://example.com"
 
+    # Find available dashboard slots (1-20)
+    used_slots = set()
+    for c in models.Camera.objects():
+        if c.dashboard_slot is not None:
+            used_slots.add(c.dashboard_slot)
+            
+    available_slots = [i for i in range(1, 21) if i not in used_slots or i == cam.dashboard_slot]
+
     return render_template(
         "/camera/setting.html",
         camera=cam,
-        target_url=target_url
+        target_url=target_url,
+        available_slots=available_slots
     )
+
+@module.route("/cameras/manage")
+@login_required
+def manage():
+    """Camera management page. Queries all cameras only when this page is visited."""
+    cameras = models.Camera.objects().order_by('name')
+    
+    # Check which cameras are currently active on grid or map
+    assigned_camera_ids = []
+    # Currently assigned on dashboard grid
+    for cam in models.Camera.objects():
+        if getattr(cam, 'dashboard_slot', None):
+            assigned_camera_ids.append(cam.camera_id)
+            
+    # Currently assigned to active parking mapping
+    mapped_camera_ids = []
+    for pa in models.ParkingArea.objects():
+        if pa.camera_id:
+            mapped_camera_ids.append(pa.camera_id)
+            
+    # Find all currently used slots, so manage.html can render the slot picker correctly
+    used_slots = set()
+    for cam in cameras:
+        if cam.dashboard_slot is not None:
+            used_slots.add(cam.dashboard_slot)
+    # All slots 1-20 are available (the per-camera edit modal will re-include the camera's current slot)
+    all_slots = list(range(1, 21))
+    # available_slots = slots not taken by any OTHER camera
+    # We pass all 1-20, and per-row the button already knows which one is taken by itself
+    available_slots = all_slots
+            
+    return render_template(
+        "/camera/manage.html",
+        cameras=cameras,
+        assigned_camera_ids=assigned_camera_ids,
+        mapped_camera_ids=mapped_camera_ids,
+        available_slots=available_slots
+    )
+
+import uuid
+from flask import request, redirect, url_for, flash
+
+@module.route("/cameras/api/add", methods=["POST"])
+@login_required
+def add_camera():
+    name = request.form.get("name", "").strip()
+    stream_url = request.form.get("stream_url", "").strip()
+    
+    if name and stream_url:
+        camera_id = f"cam_{uuid.uuid4().hex[:8]}"
+        new_cam = models.Camera(
+            camera_id=camera_id,
+            name=name,
+            stream_url=stream_url
+        )
+        new_cam.save()
+        flash(f"Camera '{name}' successfully added.", "success")
+    else:
+        flash("Name and Stream URL are required.", "error")
+        
+    return redirect(url_for("camera.manage"))
+
+@module.route("/cameras/api/edit", methods=["POST"])
+@login_required
+def edit_camera():
+    camera_id = request.form.get("camera_id")
+    name = request.form.get("name", "").strip()
+    return_to = request.form.get("return_to", "manage")  # 'manage' or 'setting'
+    
+    cam = models.Camera.objects(camera_id=camera_id).first()
+    if cam:
+        if name:
+            cam.name = name
+            cam.save()
+            flash(f"Camera name updated successfully.", "success")
+        else:
+            flash("Camera name cannot be empty.", "error")
+    else:
+        flash("Camera not found.", "error")
+        
+    if return_to == "setting":
+        return redirect(url_for("camera.camera_setting", camera_id=camera_id))
+    return redirect(url_for("camera.manage"))
+
+@module.route("/cameras/api/assign_slot", methods=["POST"])
+@login_required
+def assign_slot():
+    camera_id = request.form.get("camera_id")
+    slot = request.form.get("dashboard_slot")
+    
+    cam = models.Camera.objects(camera_id=camera_id).first()
+    if cam:
+        if slot == "unassign" or not slot:
+            cam.dashboard_slot = None
+            cam.save()
+            flash("Camera unassigned from dashboard.", "success")
+        else:
+            try:
+                slot_int = int(slot)
+                # Check if slot is already taken
+                existing = models.Camera.objects(dashboard_slot=slot_int).first()
+                if existing and existing.camera_id != cam.camera_id:
+                    flash(f"Slot {slot_int} is already assigned to another camera.", "error")
+                else:
+                    cam.dashboard_slot = slot_int
+                    cam.save()
+                    flash(f"Camera assigned to Slot {slot_int}.", "success")
+            except ValueError:
+                flash("Invalid slot number.", "error")
+            except Exception as e:
+                flash(f"Error updating slot: {e}", "error")
+    else:
+        flash("Camera not found.", "error")
+        
+    return redirect(url_for("camera.camera_setting", camera_id=camera_id))
+
+@module.route("/cameras/api/delete", methods=["POST"])
+@login_required
+def delete_camera():
+    camera_id = request.form.get("camera_id")
+    cam = models.Camera.objects(camera_id=camera_id).first()
+    
+    if cam:
+        # Delete the camera (this also removes its dashboard_slot assignment)
+        cam.delete()
+        flash("Camera deleted successfully.", "success")
+    else:
+        flash("Camera not found.", "error")
+        
+    return redirect(url_for("camera.manage"))

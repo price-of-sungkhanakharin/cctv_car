@@ -20,6 +20,10 @@ def index():
             assigned_cameras[cam.dashboard_slot] = cam
         else:
             unassigned_cameras.append(cam)
+            
+    parking_areas = models.ParkingArea.objects()
+    parking_dict = {pa.camera_id: pa for pa in parking_areas}
+
     # Fetch the 20 most recent anomaly events for initial render
     anomaly_logs = models.AnomalyEvent.objects().order_by("-timestamp").limit(20)
             
@@ -27,7 +31,8 @@ def index():
         "/index/index.html", 
         assigned_cameras=assigned_cameras,
         unassigned_cameras=unassigned_cameras,
-        anomaly_logs=anomaly_logs
+        anomaly_logs=anomaly_logs,
+        parking_dict=parking_dict
     )
 
 @module.route("/api/components/dashboard_logs")

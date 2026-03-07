@@ -15,19 +15,29 @@
     <!-- View Mode Controls -->
     <div class="flex items-center justify-between mb-2 px-1 shrink-0">
       <h2 class="text-sm font-bold text-slate-300 uppercase tracking-wider">Live Cameras</h2>
-      <div class="flex items-center gap-1 bg-slate-800/50 p-1 rounded-lg border border-white/5">
-        <button onclick="setGridMode(3)"
-          class="grid-mode-btn px-3 py-1 text-xs font-semibold rounded text-slate-400 hover:text-white transition-all"
-          data-mode="3">3 Cam</button>
-        <button onclick="setGridMode(6)"
-          class="grid-mode-btn px-3 py-1 text-xs font-semibold rounded text-slate-400 hover:text-white transition-all"
-          data-mode="6">6 Cam</button>
-        <button onclick="setGridMode(9)"
-          class="grid-mode-btn px-3 py-1 text-xs font-semibold rounded text-slate-400 hover:text-white transition-all"
-          data-mode="9">9 Cam</button>
-        <button onclick="setGridMode(20)"
-          class="grid-mode-btn px-3 py-1 text-xs font-semibold rounded text-slate-400 hover:text-white transition-all"
-          data-mode="20">20 Cam</button>
+
+      <div class="flex items-center gap-2">
+        <div class="flex items-center gap-1 bg-slate-800/50 p-1 rounded-lg border border-white/5">
+          <button onclick="setGridMode(3)"
+            class="grid-mode-btn px-3 py-1 text-xs font-semibold rounded text-slate-400 hover:text-white transition-all"
+            data-mode="3">3 Cam</button>
+          <button onclick="setGridMode(6)"
+            class="grid-mode-btn px-3 py-1 text-xs font-semibold rounded text-slate-400 hover:text-white transition-all"
+            data-mode="6">6 Cam</button>
+          <button onclick="setGridMode(9)"
+            class="grid-mode-btn px-3 py-1 text-xs font-semibold rounded text-slate-400 hover:text-white transition-all"
+            data-mode="9">9 Cam</button>
+          <button onclick="setGridMode(20)"
+            class="grid-mode-btn px-3 py-1 text-xs font-semibold rounded text-slate-400 hover:text-white transition-all"
+            data-mode="20">20 Cam</button>
+        </div>
+
+        <!-- Manage Cameras Button -->
+        <a href="{{ url_for('camera.manage') }}"
+          class="flex items-center justify-center w-8 h-8 rounded bg-slate-700/80 hover:bg-slate-600 text-white transition-colors shadow-lg border border-slate-500/50"
+          title="Manage Cameras">
+          ⚙️
+        </a>
       </div>
     </div>
 
@@ -41,9 +51,24 @@
         data-camera-id="{% if cam %}{{ cam.camera_id }}{% endif %}"
         onclick="openCameraModal(this.getAttribute('data-slot'), this.getAttribute('data-camera-id'))">
         <!-- The visual feed container -->
-        <div class="camera-feed" id="feed-container-{{ i }}">
+        <div class="camera-feed relative" id="feed-container-{{ i }}">
           {% if cam and cam.stream_url %}
-          <img src="{{ cam.stream_url }}" class="w-full h-full object-cover" alt="Stream for CAM-{{ slot_id }}"
+          <!-- Spinner Layer -->
+          <div id="loader-{{ i }}"
+            class="absolute inset-0 flex flex-col justify-center items-center z-10 bg-slate-900/80 backdrop-blur-sm">
+            <span class="material-symbols-outlined animate-spin text-emerald-500 mb-2"
+              style="font-size: 2rem;">sync</span>
+            <span class="text-xs text-slate-400 font-bold uppercase tracking-wider">Connecting...</span>
+          </div>
+          <!-- Disconnected Layer -->
+          <div id="offline-{{ i }}"
+            class="absolute inset-0 flex flex-col justify-center items-center w-full h-full bg-slate-800/50 text-red-500 text-xs text-center p-2 z-10 border border-red-900/30 hidden">
+            <span class="material-symbols-outlined mb-1" style="font-size: 2rem;">videocam_off</span>
+            <span class="font-bold uppercase tracking-wider">Disconnected</span>
+          </div>
+          <!-- Stream Image -->
+          <img src="{{ cam.stream_url }}" data-src="{{ cam.stream_url }}" class="w-full h-full object-cover invisible"
+            alt="Stream for CAM-{{ slot_id }}" id="stream-img-{{ i }}" onload="handleImageSuccess(this, '{{ i }}')"
             onerror="handleImageError(this, '{{ i }}')" />
           {% else %}
           <div class="camera-no-feed flex justify-center items-center w-full h-full bg-slate-800/20">
@@ -56,8 +81,9 @@
         <div class="camera-overlay"></div>
         <div class="absolute top-2 right-2 flex h-2 w-2 z-10" id="status-ind-{{ i }}">
           {% if cam and cam.stream_url %}
-          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-          <span
+          <span id="status-ping-{{ i }}"
+            class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+          <span id="status-dot-{{ i }}"
             class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]"></span>
           {% else %}
           <span
@@ -66,6 +92,22 @@
         </div>
         <span class="camera-label">CAM-{{ slot_id }}</span>
         <span class="camera-name" id="name-lbl-{{ i }}">{{ cam.name if cam else 'Unassigned Slot' }}</span>
+
+        {% set pa = parking_dict.get(cam.camera_id) if cam else None %}
+        {% if pa %}
+        <div id="parking-info-{{ i }}" class="absolute bottom-8 left-2 flex gap-1.5 invisible z-20">
+          <span
+            class="bg-blue-500/90 px-1.5 py-0.5 rounded flex items-center gap-1 text-[10px] font-bold text-white shadow shadow-black/50 backdrop-blur-sm border border-blue-400/30">
+            <span class="material-symbols-outlined text-[12px]">directions_car</span>
+            {{ pa.available_car_slots }}/{{ pa.total_car_slots }}
+          </span>
+          <span
+            class="bg-emerald-500/90 px-1.5 py-0.5 rounded flex items-center gap-1 text-[10px] font-bold text-white shadow shadow-black/50 backdrop-blur-sm border border-emerald-400/30">
+            <span class="material-symbols-outlined text-[12px]">two_wheeler</span>
+            {{ pa.available_motorcycle_slots }}/{{ pa.total_motorcycle_slots }}
+          </span>
+        </div>
+        {% endif %}
 
         {% if cam %}
         <!-- Action Buttons -->
@@ -443,16 +485,95 @@
     }
   }
 
-  function handleImageError(imgElem, slotId) {
-    // If the stream fails to load or connect
-    imgElem.parentElement.innerHTML = `
-      <div class="camera-no-feed flex flex-col justify-center items-center w-full h-full bg-slate-800/20 text-red-500 text-xs text-center p-2">
-        <span class="material-symbols-outlined mb-1" style="font-size: 2rem;">videocam_off</span>
-        Connection Failed
-      </div>
-    `;
+  function monitorStreamLoad(imgElem, slotId) {
+    if (imgElem.dataset.timeoutId) {
+      clearTimeout(parseInt(imgElem.dataset.timeoutId));
+    }
+    if (imgElem.dataset.retryId) {
+      clearInterval(parseInt(imgElem.dataset.retryId));
+      delete imgElem.dataset.retryId;
+    }
+
+    imgElem.dataset.timeoutId = setTimeout(() => {
+      if (imgElem.classList.contains('invisible')) {
+        imgElem.src = ""; // Abort current connection
+        handleImageError(imgElem, slotId);
+      }
+    }, 2000);
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    for (let i = 1; i <= 20; i++) {
+      const img = document.getElementById(`stream-img-${i}`);
+      if (img) {
+        monitorStreamLoad(img, i.toString());
+      }
+    }
+  });
+
+  function handleImageSuccess(imgElem, slotId) {
+    if (imgElem.dataset.timeoutId) {
+      clearTimeout(parseInt(imgElem.dataset.timeoutId));
+    }
+    if (imgElem.dataset.retryId) {
+      clearInterval(parseInt(imgElem.dataset.retryId));
+      delete imgElem.dataset.retryId;
+    }
+
+    const loader = document.getElementById(`loader-${slotId}`);
+    if (loader) loader.style.display = 'none';
+
+    const offlineUi = document.getElementById(`offline-${slotId}`);
+    if (offlineUi) offlineUi.classList.add('hidden');
+
+    imgElem.classList.remove('invisible');
+
+    const parkingInfo = document.getElementById(`parking-info-${slotId}`);
+    if (parkingInfo) parkingInfo.classList.remove('invisible');
+
     const statusInd = document.getElementById("status-ind-" + slotId);
-    if (statusInd) statusInd.classList.add("hidden");
+    if (statusInd) {
+      statusInd.innerHTML = `
+        <span id="status-ping-${slotId}" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+        <span id="status-dot-${slotId}" class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]"></span>
+      `;
+    }
+  }
+
+  function handleImageError(imgElem, slotId) {
+    if (imgElem.dataset.timeoutId) {
+      clearTimeout(parseInt(imgElem.dataset.timeoutId));
+    }
+
+    const loader = document.getElementById(`loader-${slotId}`);
+    if (loader) loader.style.display = 'none';
+
+    const offlineUi = document.getElementById(`offline-${slotId}`);
+    if (offlineUi) offlineUi.classList.remove('hidden');
+
+    imgElem.classList.add('invisible');
+
+    const parkingInfo = document.getElementById(`parking-info-${slotId}`);
+    if (parkingInfo) parkingInfo.classList.add('invisible');
+
+    const statusInd = document.getElementById("status-ind-" + slotId);
+    if (statusInd) {
+      statusInd.innerHTML = `<span class="relative inline-flex rounded-full h-2 w-2 bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]"></span>`;
+    }
+
+    // Auto-reconnect polling (every 5 seconds)
+    if (!imgElem.dataset.retryId) {
+      imgElem.dataset.retryId = setInterval(() => {
+        if (offlineUi) offlineUi.classList.add('hidden');
+        if (loader) loader.style.display = 'flex';
+
+        const baseSrc = imgElem.dataset.src;
+        const sep = baseSrc.includes('?') ? '&' : '?';
+        imgElem.src = `${baseSrc}${sep}retry=${new Date().getTime()}`;
+
+        monitorStreamLoad(imgElem, slotId);
+      }, 5000);
+    }
   }
 </script>
 {% endblock body %}

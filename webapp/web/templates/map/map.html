@@ -31,7 +31,7 @@
 <div
   class="flex-1 w-full relative flex flex-col overflow-hidden bg-[#121214] rounded-xl border border-zinc-800/50 shadow-2xl">
   <!-- Search Box -->
-  <div class="absolute top-6 left-6 z-20 w-full max-w-sm pointer-events-none">
+  <div class="absolute top-6 left-16 z-[1000] w-full max-w-sm pointer-events-none">
     <div class="search-box rounded-xl shadow-lg pointer-events-auto p-2">
       <div class="flex items-center px-2">
         <span class="material-symbols-outlined text-slate-400">search</span>
@@ -41,11 +41,25 @@
     </div>
   </div>
 
+  <!-- Top Right Info Legend -->
+  <div class="absolute top-6 right-6 z-[1000] pointer-events-none">
+    <div
+      class="bg-[#171717] rounded-lg shadow-lg p-3 pointer-events-auto border border-white/10 flex flex-col gap-1 text-xs">
+      <div class="font-bold text-slate-300 border-b border-white/10 pb-1 mb-1">Available Slots</div>
+      <div class="flex items-center gap-2 text-slate-400">
+        <span class="font-bold text-blue-400 w-4">C:</span> Car
+      </div>
+      <div class="flex items-center gap-2 text-slate-400">
+        <span class="font-bold text-blue-400 w-4">M:</span> Motorcycle
+      </div>
+    </div>
+  </div>
+
   <!-- Map Container -->
   <div id="map" class="flex-1 w-full h-full relative rounded-lg"></div>
 
   <!-- Map Controls -->
-  <div class="absolute bottom-8 right-8 z-20 flex flex-col gap-3 pointer-events-none">
+  <div class="absolute bottom-8 right-8 z-[1000] flex flex-col gap-3 pointer-events-none">
     <div
       class="flex flex-col rounded-lg shadow-xl overflow-hidden border border-slate-200 dark:border-zinc-700 pointer-events-auto">
       <button class="size-10 flex items-center justify-center map-control-button border-b" onclick="map.zoomIn()">
@@ -60,27 +74,6 @@
       onclick="zoomToUniversity()">
       <span class="material-symbols-outlined">my_location</span>
     </button>
-  </div>
-
-  <!-- Map Legend -->
-  <div class="absolute bottom-6 left-6 z-20 pointer-events-none">
-    <div class="map-legend rounded-lg shadow-lg p-4 pointer-events-auto w-48">
-      <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Map Legend</h4>
-      <div class="flex flex-col gap-2">
-        <div class="legend-item">
-          <span class="legend-dot legend-dot-parking"></span>
-          Parking Lot
-        </div>
-        <div class="legend-item">
-          <span class="legend-dot legend-dot-building"></span>
-          Campus Building
-        </div>
-        <div class="legend-item">
-          <span class="legend-dot legend-dot-green"></span>
-          Green Area
-        </div>
-      </div>
-    </div>
   </div>
 </div>
 
@@ -122,9 +115,10 @@
   // Map: camera_id → { marker, tooltip, lot }
   const markerMap = {};
 
-  function capacityLabel(available, total) {
-    if (available === null || available === undefined) return '?';
-    return available.toString();
+  function capacityLabel(name, cars_avail, motos_avail) {
+    if (cars_avail === null || cars_avail === undefined) return '?';
+    return `<div style="text-align: center; font-weight: bold;">${name}</div>
+            <div style="text-align: center;">C: ${cars_avail} | M: ${motos_avail}</div>`;
   }
 
   function createPopupContent(lot, isOnline, fresh) {
@@ -209,8 +203,9 @@
     const marker = L.marker([lot.lat, lot.lng], { icon: iconFactory('loading') }).addTo(map);
     marker.bindPopup(createPopupContent(lot, true, null), { maxWidth: 300 });
 
-    const tooltip_total_available = (lot.available_car_slots || 0) + (lot.available_motorcycle_slots || 0);
-    const tooltip = marker.bindTooltip(capacityLabel(tooltip_total_available, lot.total_slots), {
+    const tooltip_cars = lot.available_car_slots || 0;
+    const tooltip_motos = lot.available_motorcycle_slots || 0;
+    const tooltip = marker.bindTooltip(capacityLabel(lot.name, tooltip_cars, tooltip_motos), {
       permanent: true, direction: 'top',
       className: 'parking-availability-label',
       offset: isLarge ? [0, -32] : [0, -22]
@@ -226,101 +221,60 @@
     if (!entry) return;
     const { marker, iconFactory, lot, isLarge } = entry;
 
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 5000); // 5s max
+    let retryInterval = null;
 
-    try {
-      const res = await fetch(`/api/map/sync_camera/${camera_id}`, { signal: controller.signal });
-      clearTimeout(timeout);
+    const performSync = async () => {
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 5000); // 5s timeout per request
+        const res = await fetch(`/api/map/sync_camera/${camera_id}`, { signal: controller.signal });
+        clearTimeout(timeout);
 
-      if (!res.ok) throw new Error('sync failed');
-      const data = await res.json();
+        if (res.ok) {
+          const data = await res.json();
 
-      // Update to online state
-      marker.setIcon(iconFactory('online'));
-      marker.setPopupContent(createPopupContent(lot, true, data));
-      marker.setTooltipContent(capacityLabel(data.available_slots, data.total_slots));
+          if (data.online) {
+            // หยุดวงจร retry ชั่วคราวเพราะต่อติดแล้ว
+            if (retryInterval) {
+              clearInterval(retryInterval);
+              retryInterval = null;
+            }
 
-    } catch (err) {
-      clearTimeout(timeout);
-      // Show offline (red) if timed out or error
-      marker.setIcon(iconFactory('offline'));
-      marker.setPopupContent(createPopupContent(lot, false, null));
-      marker.setTooltipContent('✕');
-    }
+            marker.setIcon(iconFactory('online'));
+            marker.setPopupContent(createPopupContent(lot, true, data));
+            const avail_cars = data.available_car_slots || 0;
+            const avail_motos = data.available_motorcycle_slots || 0;
+            marker.setTooltipContent(capacityLabel(lot.name, avail_cars, avail_motos));
+
+            // ดักเช็คสถานะครั้งต่อไปใน 5 วิ (อัปเดตข้อมูลต่อเนื่องโดยไม่ต้องโหลดหน้าใหม่)
+            setTimeout(performSync, 5000);
+            return; // Exit early since we succeeded
+          } else {
+            // backend says it's off (data sync failed AND stream ping failed)
+            marker.setIcon(iconFactory('offline'));
+            marker.setPopupContent(createPopupContent(lot, false, data)); // uses newest DB data
+            marker.setTooltipContent('✕');
+          }
+        }
+      } catch (e) {
+        // Hard fail (our own backend timeout or crash)
+        marker.setIcon(iconFactory('offline'));
+        marker.setPopupContent(createPopupContent(lot, false, lot)); // uses initial lot data mapped
+        marker.setTooltipContent('✕');
+      }
+
+      // เริ่มวงจร Auto-Reconnect โหลดใหม่ทุก 5 วิ (ถ้ามัน Offline หรือ Error)
+      if (!retryInterval) {
+        retryInterval = setInterval(performSync, 5000);
+      }
+    };
+
+    // เริ่มทำงานครั้งแรก
+    performSync();
   }
 
-  // ---- Progressive async sync per camera (max 5s) ----
-  // ยิงตรงไปที่ camera API เลย ไม่ผ่าน Flask server เพื่อหลีกเลี่ยง single-thread bottleneck
-  async function syncCamera(lot) {
-    const entry = markerMap[lot.camera_id];
-    if (!entry) return;
-    const { marker, iconFactory } = entry;
-
-    // ถ้าไม่มี base_url (กล้องไม่มี stream_url) → แดงเลย
-    if (!lot.base_url) {
-      marker.setIcon(iconFactory('offline'));
-      marker.setPopupContent(createPopupContent(lot, false, null));
-      marker.setTooltipContent('✕');
-      return;
-    }
-
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 5000); // 5s max
-
-    try {
-      // ยิงตรงไปที่กล้องเลย เช่น http://172.30.81.168:8080/api/parking_areas
-      const res = await fetch(`${lot.base_url}/api/parking_areas`, {
-        signal: controller.signal,
-        mode: 'cors'   // camera C++ server ต้องส่ง CORS header กลับมาด้วย
-      });
-      clearTimeout(timeout);
-
-      if (!res.ok) throw new Error(`status ${res.status}`);
-      const raw = await res.json();
-
-      const p = Array.isArray(raw) ? raw[0] : raw;
-
-      const t_car = p?.total_car_slots ?? lot.total_car_slots ?? 0;
-      const a_car = p?.available_car_slots ?? lot.available_car_slots ?? 0;
-      const t_moto = p?.total_motorcycle_slots ?? lot.total_motorcycle_slots ?? 0;
-      const a_moto = p?.available_motorcycle_slots ?? lot.available_motorcycle_slots ?? 0;
-      const violations = p?.violation_slots ?? lot.violation_slots ?? 0;
-
-      const total = p?.total_slots ?? lot.total_slots ?? 0;
-      const c_car = p?.occupied_car_slots ?? lot.occupied_car_slots ?? 0;
-      const c_moto = p?.occupied_motorcycle_slots ?? lot.occupied_motorcycle_slots ?? 0;
-      const pct = total > 0 ? Math.round((c_car + c_moto) / total * 100) : 0;
-
-      const freshData = {
-        total_slots: total, capacityPercent: pct,
-        total_car_slots: t_car, available_car_slots: a_car,
-        total_motorcycle_slots: t_moto, available_motorcycle_slots: a_moto,
-        violation_slots: violations
-      };
-
-      // อัปเดต marker เป็น online (สีน้ำเงิน)
-      marker.setIcon(iconFactory('online'));
-      marker.setPopupContent(createPopupContent(lot, true, freshData));
-
-      // Compute total available for tooltip
-      const total_available = a_car + a_moto;
-      marker.setTooltipContent(total_available.toString());
-
-      // แจ้ง server ให้อัปเดต MongoDB ด้วย (fire-and-forget ไม่ต้องรอ)
-      fetch(`/api/map/sync_camera/${lot.camera_id}`).catch(() => { });
-
-    } catch (err) {
-      clearTimeout(timeout);
-      // Timeout หรือ network error → แดง
-      marker.setIcon(iconFactory('offline'));
-      marker.setPopupContent(createPopupContent(lot, false, null));
-      marker.setTooltipContent('✕');
-    }
-  }
-
-  // ยิง sync ทุกกล้องพร้อมกัน (parallel) เพราะแต่ละตัวยิงตรงไปกล้องเลย ไม่ block กัน
-  db_parking_lots.forEach(lot => syncCamera(lot));
+  // ยิง sync ทุกกล้องพร้อมกัน (parallel)
+  db_parking_lots.forEach(lot => syncCamera(lot.camera_id));
 
   // ---- Zoom & Search ----
   function zoomToUniversity() { map.setView([PSU_LAT, PSU_LNG], 15); }

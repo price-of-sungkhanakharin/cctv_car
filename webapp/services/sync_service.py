@@ -16,10 +16,10 @@ def sync_parking_area_for_camera(cam):
     """Hits the target camera's API to fetch and upsert its ParkingArea."""
     api_url = _get_api_url_for_camera(cam)
     if not api_url:
-        return
+        return False
         
     try:
-        parking_res = requests.get(f"{api_url}/api/parking_areas", timeout=3)
+        parking_res = requests.get(f"{api_url}/api/parking_areas", timeout=0.5, verify=False)
         if parking_res.status_code == 200:
             parking_data = parking_res.json()
             if isinstance(parking_data, dict):
@@ -44,8 +44,10 @@ def sync_parking_area_for_camera(cam):
                     set__updated_date=datetime.datetime.now(),
                     upsert=True
                 )
+            return True
+        return False
     except Exception:
-        pass  # Timeout, network error, or any DB error — silently ignore
+        return False  # Timeout, network error, or any DB error — silently ignore
 
 
 def sync_anomaly_events_for_camera(cam):
@@ -62,7 +64,7 @@ def sync_anomaly_events_for_camera(cam):
             since_ts = int(latest_event.timestamp.timestamp())
             params['since'] = since_ts
             
-        events_res = requests.get(f"{api_url}/api/anomaly_events", params=params, timeout=3)
+        events_res = requests.get(f"{api_url}/api/anomaly_events", params=params, timeout=0.5, verify=False)
         if events_res.status_code == 200:
             events_data = events_res.json()
             

@@ -23,12 +23,13 @@
 {% endblock %}
 
 {% block body %}
-<div class="flex flex-col h-full w-full bg-[#0b1116] overflow-hidden">
+<div class="flex flex-col h-screen w-full bg-[#0b1116] overflow-hidden">
     <!-- Header -->
     <header class="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-[#0b1116] shrink-0">
         <div class="flex items-center gap-4">
-            <button onclick="window.close()"
-                class="size-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-300 transition-colors border border-white/5">
+            <button onclick="history.back()"
+                class="size-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-300 transition-colors border border-white/5"
+                title="Go Back">
                 <span class="material-symbols-outlined text-xl">arrow_back</span>
             </button>
             <div>
@@ -40,9 +41,14 @@
                         <span class="text-xs font-mono font-medium text-blue-400">{{ camera.camera_id }}</span>
                     </div>
                 </div>
-
-                <div class="flex items-center gap-4 text-xs font-medium text-slate-400">
+                <div class="flex items-center gap-2 text-xs font-medium text-slate-400">
                     <span class="text-slate-300">{{ camera.name }}</span>
+                    <!-- Small Edit Button -->
+                    <button onclick="document.getElementById('setting-edit-modal').showModal()"
+                        class="size-6 rounded bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-colors border border-white/10"
+                        title="Configure">
+                        <span class="material-symbols-outlined text-[14px]">settings</span>
+                    </button>
                     <div class="w-1 h-1 rounded-full bg-white/20"></div>
                     <div class="flex items-center gap-1.5">
                         <span class="material-symbols-outlined text-[14px] text-slate-500">public</span>
@@ -54,6 +60,16 @@
         </div>
 
         <div class="flex items-center gap-4">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            {% for category, message in messages %}
+            <div
+                class="px-3 py-1.5 rounded text-sm {% if category == 'success' %}bg-emerald-900/30 text-emerald-400 border border-emerald-800/50{% else %}bg-red-900/30 text-red-400 border border-red-800/50{% endif %}">
+                {{ message }}
+            </div>
+            {% endfor %}
+            {% endif %}
+            {% endwith %}
             <a href="{{ target_url }}" target="_blank"
                 class="flex items-center gap-2 px-4 py-2 bg-[#1c222b] hover:bg-slate-700 border border-white/10 text-white rounded-lg text-sm font-medium transition-all">
                 <span class="material-symbols-outlined text-[18px]">open_in_new</span>
@@ -62,12 +78,81 @@
         </div>
     </header>
 
-    <!-- Main Content Area with Iframe -->
+    <!-- Full-width Iframe -->
     <main class="flex-1 flex p-6 min-h-0">
         <div class="iframe-container shadow-2xl">
-            <!-- Embedding the mock website -->
             <iframe src="{{ target_url }}" title="Camera Settings"></iframe>
         </div>
     </main>
 </div>
+
+<!-- Edit Modal (Rename + Slot + Delete) -->
+<dialog id="setting-edit-modal" class="modal">
+    <div class="modal-box bg-slate-800 text-slate-200 border border-slate-700 max-w-sm">
+        <h3 class="font-bold text-lg mb-4 text-emerald-400 flex items-center gap-2">
+            <span class="material-symbols-outlined">tune</span> Camera Configuration
+        </h3>
+
+        <!-- Rename -->
+        <form method="POST" action="{{ url_for('camera.edit_camera') }}">
+            <input type="hidden" name="camera_id" value="{{ camera.camera_id }}">
+            <input type="hidden" name="return_to" value="setting">
+            <div class="form-control w-full mb-2">
+                <label class="label py-1"><span
+                        class="label-text text-slate-300 font-semibold text-xs uppercase tracking-wider">Camera
+                        Name</span></label>
+                <div class="flex gap-2">
+                    <input type="text" name="name" value="{{ camera.name }}" required
+                        class="input input-sm input-bordered flex-1 bg-slate-900 border-slate-700 text-white focus:border-emerald-500" />
+                    <button type="submit"
+                        class="btn btn-sm bg-emerald-600 hover:bg-emerald-500 text-white border-none">Save</button>
+                </div>
+            </div>
+        </form>
+
+        <div class="divider my-3"></div>
+
+        <!-- Dashboard Slot -->
+        <form method="POST" action="{{ url_for('camera.assign_slot') }}">
+            <input type="hidden" name="camera_id" value="{{ camera.camera_id }}">
+            <div class="form-control w-full mb-2">
+                <label class="label py-1"><span
+                        class="label-text text-slate-300 font-semibold text-xs uppercase tracking-wider">Dashboard
+                        Slot</span></label>
+                <div class="flex gap-2">
+                    <select name="dashboard_slot"
+                        class="select select-sm select-bordered flex-1 bg-slate-900 border-slate-700 text-white focus:border-blue-500">
+                        <option value="unassign" {% if not camera.dashboard_slot %}selected{% endif %}>-- Unassigned --
+                        </option>
+                        {% for i in available_slots %}
+                        <option value="{{ i }}" {% if camera.dashboard_slot==i %}selected{% endif %}>Slot {{ i }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <button type="submit"
+                        class="btn btn-sm bg-blue-600 hover:bg-blue-500 text-white border-none">Apply</button>
+                </div>
+            </div>
+        </form>
+
+        <div class="divider my-3"></div>
+
+        <!-- Delete -->
+        <form method="POST" action="{{ url_for('camera.delete_camera') }}" data-name="{{ camera.name }}"
+            onsubmit="return confirm('Are you sure you want to delete ' + this.dataset.name + '?');">
+            <input type="hidden" name="camera_id" value="{{ camera.camera_id }}">
+            <button type="submit"
+                class="btn btn-sm w-full bg-red-900/40 hover:bg-red-600 border border-red-800/50 text-red-400 hover:text-white transition-colors">
+                <span class="material-symbols-outlined text-[16px]">delete</span>
+                Delete Camera
+            </button>
+        </form>
+
+        <div class="modal-action mt-4">
+            <button onclick="document.getElementById('setting-edit-modal').close()"
+                class="btn btn-sm btn-ghost">Close</button>
+        </div>
+    </div>
+</dialog>
+
 {% endblock %}
