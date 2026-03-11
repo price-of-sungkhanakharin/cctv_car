@@ -33,7 +33,7 @@ def sync_parking_area_for_camera(cam):
             p = parking_data[0] # The latest state
 
             ParkingArea.objects(camera_id=cam.camera_id).update_one(
-                set__name=p.get('name') or cam.name or cam.camera_id,
+                set__name=cam.name or p.get('name') or cam.camera_id,
                 set__total_slots=int(p.get('total_slots', 0)),
                 
                 set__total_car_slots=int(p.get('total_car_slots', 0)),
