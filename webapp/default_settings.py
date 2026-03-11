@@ -1,2 +1,2 @@
 MONGODB_DB = "webappdb"
-APP_TITLE = "Flask App"
+APP_TITLE = "Smart Parking"
