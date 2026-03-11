@@ -25,25 +25,30 @@ def sync_parking_area_for_camera(cam):
             if isinstance(parking_data, dict):
                 parking_data = [parking_data]
 
-            for p in parking_data:
-                # upsert_one เป็น atomic — ไม่โยน NotUniqueError ไม่ว่ากรณีใดๆ
-                ParkingArea.objects(camera_id=cam.camera_id).update_one(
-                    set__name=cam.name or cam.camera_id,
-                    set__total_slots=p.get('total_slots', 0),
-                    
-                    set__total_car_slots=p.get('total_car_slots', 0),
-                    set__available_car_slots=p.get('available_car_slots', 0),
-                    set__occupied_car_slots=p.get('occupied_car_slots', 0),
-                    
-                    set__total_motorcycle_slots=p.get('total_motorcycle_slots', 0),
-                    set__available_motorcycle_slots=p.get('available_motorcycle_slots', 0),
-                    set__occupied_motorcycle_slots=p.get('occupied_motorcycle_slots', 0),
-                    
-                    set__violation_slots=p.get('violation_slots', 0),
-                    set__description=p.get('description', ''),
-                    set__updated_date=datetime.datetime.now(),
-                    upsert=True
-                )
+            if not parking_data:
+                return True
+                
+            # Sort descending by created_date to ensure we get the absolute newest state
+            parking_data.sort(key=lambda x: x.get('created_date', ''), reverse=True)
+            p = parking_data[0] # The latest state
+
+            ParkingArea.objects(camera_id=cam.camera_id).update_one(
+                set__name=p.get('name') or cam.name or cam.camera_id,
+                set__total_slots=int(p.get('total_slots', 0)),
+                
+                set__total_car_slots=int(p.get('total_car_slots', 0)),
+                set__available_car_slots=int(p.get('available_car_slots', 0)),
+                set__occupied_car_slots=int(p.get('occupied_car_slots', 0)),
+                
+                set__total_motorcycle_slots=int(p.get('total_motorcycle_slots', 0)),
+                set__available_motorcycle_slots=int(p.get('available_motorcycle_slots', 0)),
+                set__occupied_motorcycle_slots=int(p.get('occupied_motorcycle_slots', 0)),
+                
+                set__violation_slots=int(p.get('violation_slots', 0)),
+                set__description=p.get('description', ''),
+                set__updated_date=datetime.datetime.now(),
+                upsert=True
+            )
             return True
         return False
     except Exception:
